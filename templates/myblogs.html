@@ -1,0 +1,106 @@
+<!-- templates/blog.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Posts</title>
+</head>
+<body>
+    <h2>Blog Posts</h2>
+
+    <div>
+        <h3>Create New Post</h3>
+        <form id="create-post-form">
+            <input type="text" id="title" placeholder="Title" required><br><br>
+            <input type="text" id="slug" placeholder="Slug" required><br><br>
+            <textarea id="content" placeholder="Content" required></textarea><br><br>
+            <button type="submit">Create Post</button>
+        </form>
+    </div>
+
+    <h3>All Posts</h3>
+    <ul id="posts-list"></ul>
+
+    <script>
+        const token = localStorage.getItem('token');
+        console.log(token);
+
+        if (!token) {
+            window.location.href = '/login/';
+        }
+
+        // Fetch and display all posts
+        async function fetchPosts() {
+            const response = await fetch('/posts/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const posts = await response.json();
+                const postsList = document.getElementById('posts-list');
+                postsList.innerHTML = '';
+
+                posts.forEach(post => {
+                    postsList.innerHTML += `
+                        <li>
+                            <h4>${post.title}</h4>
+                            <p>${post.content}</p>
+                            <button onclick="deletePost(${post.id})">Delete</button>
+                        </li>
+                    `;
+                });
+            } else {
+                alert('Failed to fetch posts.');
+            }
+        }
+
+        // Create a new post
+        document.getElementById('create-post-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const slug = document.getElementById('slug').value;
+            const content = document.getElementById('content').value;
+
+            const response = await fetch('/posts/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ title, slug, content, status: 1, author: 1 })
+            });
+
+            if (response.ok) {
+                alert('Post created successfully!');
+                fetchPosts();
+            } else {
+                alert('Failed to create post.');
+            }
+        });
+
+        // Delete a post
+        async function deletePost(id) {
+            const response = await fetch(`/posts/${id}/`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                alert('Post deleted.');
+                fetchPosts();
+            } else {
+                alert('Failed to delete post.');
+            }
+        }
+
+        // Fetch posts on page load
+        fetchPosts();
+    </script>
+</body>
+</html>
